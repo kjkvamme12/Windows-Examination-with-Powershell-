@@ -58,7 +58,8 @@ The Live Windows Examination lab is aimed to apply different PowerShell commands
 
 The result would be a suspicious process: calcache. 
 
-Network Enumeration
+## Network Enumeration
+
 1. Run the Get-NetTCPConnection command to get list of network connections for the host. This will show network listeners and connections on the host.
 
 
@@ -103,9 +104,13 @@ Windows Run or RunOnce registry keys are commonly used to start a process automa
 
   2. We will now check the four ASEP registry keys for processes by using Get-ItemProperty
 ![Screenshot 2025-01-20 170829](https://github.com/user-attachments/assets/cbed2447-20c1-402b-9bd8-8645224658f8)
+
+
 ***Screenshot not available: after running
    - Get-ItemProperty "HKCU: Software\Microsoft\Windows\CurrentVersion\Run"
   We see that calcache is listed as a registry value, this corresponds to the process identified earlier.
+
+
 
 3. To remove the Calcache value from the Run Key : Remove-ItemProperty
 
@@ -119,7 +124,7 @@ Now we have removed the ASEP value, then confirmed it by checking Get-ItemProper
 
 the calcahce.exe program is now removed. 
 
-##Differential Analysis
+## Differential Analysis
 Now we will capture a baseline of information to use in our assessment, then comapre the current environment to the known-good baseline. 
 Earlier we created three baseline files for services, scheduled tasks, and local users. 
 
@@ -176,7 +181,7 @@ The added scheduled task is Microsoft eDynamics.
 
 Towards the bottom there is an element Actions. The scheduled task launches a command C:\Windows\dynamics.exe and it uses the sc.exe (Service Control) utility to start hte service whenever the task is executed on the host. 
 
-##Removing Microsoft eDynamics 
+## Removing Microsoft eDynamics 
 
 1. Stop the Dynamics service using Stop-Service
 
