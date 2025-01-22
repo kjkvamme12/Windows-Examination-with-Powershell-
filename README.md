@@ -5,7 +5,7 @@
 The Live Windows Examination lab is aimed to apply different PowerShell commands to review a Windows system for signs of a possible compromise. Many commands used will also create a baseline for Windows systems. Use different techniques to identify the IOCs 
 
 ### Skills Learned
-[Bullet Points - Remove this afterwards]
+
 
 - Show running programs.
 - Show listening ports. 
@@ -16,7 +16,7 @@ The Live Windows Examination lab is aimed to apply different PowerShell commands
 - Idenitfy interesting files. 
 
 ### Tools Used
-[Bullet Points - Remove this afterwards]
+
 
 - Windows Powershell
 
