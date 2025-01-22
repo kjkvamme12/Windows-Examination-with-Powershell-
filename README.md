@@ -2,7 +2,7 @@
 
 ## Objective
 
-The Live Windows Examination lab is aimed to apply different PowerShell commands to review a Windows system for signs of a possible compromise. Many commands used will also create a baseline for Windows systems. 
+The Live Windows Examination lab is aimed to apply different PowerShell commands to review a Windows system for signs of a possible compromise. Many commands used will also create a baseline for Windows systems. Use different techniques to identify the IOCs 
 
 ### Skills Learned
 [Bullet Points - Remove this afterwards]
@@ -92,4 +92,106 @@ We have successfully stopped calcache as the Get-Process no longer works.
 
 # Now investigate how attacker launched: Registry Startup Keys
 
-1. 
+Windows Run or RunOnce registry keys are commonly used to start a process automaticallly by holding a registry value. They are known as Autostart extensibility Points (ASEPs), which are used to start a process automatically when the system boots or a user logs in. 
+- Get-ChildItem command will enumerate registry keys, and Get-ItemProperty will enumerate registry values in specific key.
+
+  1. Use Get-ChildItem to enumerate Powershell drive HKCU
+     
+![Screenshot 2025-01-20 170714](https://github.com/user-attachments/assets/f58458f2-edb1-48b9-a63f-84da7a160c0a)
+
+- Output shows Name column (registry keys), and Property column (registry values)
+
+  2. We will now check the four ASEP registry keys for processes by using Get-ItemProperty
+![Screenshot 2025-01-20 170829](https://github.com/user-attachments/assets/cbed2447-20c1-402b-9bd8-8645224658f8)
+***Screenshot not available: after running
+   - Get-ItemProperty "HKCU: Software\Microsoft\Windows\CurrentVersion\Run"
+  We see that calcache is listed as a registry value, this corresponds to the process identified earlier.
+
+3. To remove the Calcache value from the Run Key : Remove-ItemProperty
+
+   
+![Screenshot 2025-01-20 171307](https://github.com/user-attachments/assets/7a7c0708-ab93-476a-90cb-93dbd42043b7)
+
+Now we have removed the ASEP value, then confirmed it by checking Get-ItemProperty.  Now we will remove the calcache.exe program
+
+
+![Screenshot 2025-01-20 171502](https://github.com/user-attachments/assets/bd1a334d-14b0-40d4-a4d7-af1c35643b90)
+
+the calcahce.exe program is now removed. 
+
+##Differential Analysis
+Now we will capture a baseline of information to use in our assessment, then comapre the current environment to the known-good baseline. 
+Earlier we created three baseline files for services, scheduled tasks, and local users. 
+
+1. Examine the files using Get-ChildItem
+
+
+![Screenshot 2025-01-20 171753](https://github.com/user-attachments/assets/9b5d7993-0e1c-4141-bbce-06d7c38e665b)
+
+These are the commands used to save the files to a baseline:
+- Get-Service | Select-Object -ExpandProperty Name | Out-File "baseline/services.txt"
+- Get-ScheduledTask | Select-Object -ExpandProperty TaskName | Out-File "baseline/scheduledtasks.txt"
+- Get-LocalUser | Select-Object -ExpandProperty Name | Out-File "baseline/localusers.txt"
+
+-ExpandProperty parameter will provide normal header output observed when you use -Property
+
+2. Now save the files to the current directory:
+   
+![Screenshot 2025-01-20 172030](https://github.com/user-attachments/assets/0431bc3e-f87f-4d8b-b978-248e551b30d9)
+
+#Services Differential Analysis
+First lets compare the service list. Start by inspecting first ten lines using Get-Content
+
+![Screenshot 2025-01-20 172112](https://github.com/user-attachments/assets/23f753a2-056d-4380-ad61-8e655548ff15)
+
+2. Save the file contents in a variable called $servicesnow  & baseline into $servicesbaseline
+   
+![Screenshot 2025-01-22 082631](https://github.com/user-attachments/assets/056e010b-96db-4e3c-b247-7b8b7a2542e0)
+
+3. Now we will compare the variables using Compare-Object
+
+   
+![Screenshot 2025-01-22 083529](https://github.com/user-attachments/assets/bc9bf372-57cd-4f6c-bd6b-290e3342a71a)
+
+In this output we see new services: Microsoft eDynamics Service. This might be suspicious but we are not sure yet. 
+
+4. Now repeat the same process comparing the Users.
+   
+![Screenshot 2025-01-22 084313](https://github.com/user-attachments/assets/1e63c7d4-6aa2-4b55-9f23-0273f138e925)
+
+The new username that was added is dynamics. 
+
+5. Now lets use differential analysis on the scheduled tasks.
+   - Scheduled Tasks are jobs that run on Windows at a specific time and with a specific frequency. Trigger can be clock time or it can be based on other attribtues including obsreved events in the Windows Event Log.
+
+     
+![Screenshot 2025-01-22 090739](https://github.com/user-attachments/assets/b40a54a5-21af-4347-a6e5-ddd5cffd87c3)
+
+The added scheduled task is Microsoft eDynamics. 
+
+6. Lets take a look at this scheduled task  using Export-ScheduledTask
+
+   
+![Screenshot 2025-01-22 090933](https://github.com/user-attachments/assets/a846c918-79e6-45b6-9236-1ae7dfeaefb1)
+
+Towards the bottom there is an element Actions. The scheduled task launches a command C:\Windows\dynamics.exe and it uses the sc.exe (Service Control) utility to start hte service whenever the task is executed on the host. 
+
+##Removing Microsoft eDynamics 
+
+1. Stop the Dynamics service using Stop-Service
+
+   ![Screenshot 2025-01-22 091358](https://github.com/user-attachments/assets/4d13fa3b-6775-4a69-b645-b7a70a49c86a)
+
+2. Stop the Dynamics process using Get-Process, then Stop-Process in a pipeline
+
+   
+![Screenshot 2025-01-22 091455](https://github.com/user-attachments/assets/9bb520c2-d8e5-4f27-8e87-238e7133ee9c)
+
+3. Remove the dynamics. exe directory from the C:\Windows directory
+
+   
+![Screenshot 2025-01-22 091548](https://github.com/user-attachments/assets/4030480e-8f3d-41e4-bf99-31564cd3dc2b)
+
+4. Delete the service using the sc utility
+
+   ![Screenshot 2025-01-22 091703](https://github.com/user-attachments/assets/c8abe4a0-b30f-4098-91d3-2096614dffae)
